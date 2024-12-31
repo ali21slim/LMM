@@ -1,0 +1,64 @@
+import librosa
+import librosa.display
+import numpy as np
+import matplotlib.pyplot as plt
+
+def detect_pulses(audio_path, sr=None, n_fft=2048, hop_length=512):
+    # Load the audio file
+    y, sr = librosa.load(audio_path, sr=sr)
+
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+
+    onset_frames = librosa.onset.onset_detect(onset_envelope=onset_env, sr=sr)
+    onset_times = librosa.frames_to_time(onset_frames, sr=sr, hop_length=hop_length)
+
+    stft = np.abs(librosa.stft(y, n_fft=n_fft, hop_length=hop_length))
+    frequencies = librosa.fft_frequencies(sr=sr)
+
+    dominant_frequencies = []
+    for frame in onset_frames:
+        if frame < stft.shape[1]:
+            spectrum = stft[:, frame]
+            dominant_frequencies.append(frequencies[np.argmax(spectrum)])
+
+    return onset_times, dominant_frequencies, y, sr
+
+def plot_pulses(onset_times, frequencies, y, sr):
+    plt.figure(figsize=(12, 8))
+
+    plt.subplot(2, 1, 1)
+    librosa.display.waveshow(y, sr=sr, alpha=0.6)
+    for time in onset_times:
+        plt.axvline(x=time, color='r', linestyle='--', alpha=0.8)
+    plt.title("Detected Pulses")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+
+    plt.subplot(2, 1, 2)
+    plt.stem(onset_times, frequencies, linefmt='b-', markerfmt='bo', basefmt='r-')
+    plt.title("Frequencies at Detected Pulses")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Frequency (Hz)")
+
+    plt.tight_layout()
+    plt.show()
+
+def save_results_to_file(onset_times, frequencies, output_file):
+    with open(output_file, 'w') as f:
+        for time, freq in zip(onset_times, frequencies):
+            f.write(f"Pulse at {time:.2f}s: frequency = {freq:.1f} Hz\n")
+
+if __name__ == "__main__":
+    audio_path = "./sample_audio/shortderbouka4.wav"
+    output_file = "shortderbouka4_results.txt"
+
+    onset_times, frequencies, y, sr = detect_pulses(audio_path)
+
+    for time, freq in zip(onset_times, frequencies):
+        print(f"Pulse at {time:.2f}s: frequency = {freq:.1f} Hz")
+
+    save_results_to_file(onset_times, frequencies, output_file)
+
+    plot_pulses(onset_times, frequencies, y, sr)
+
+    print(f"Results saved to {output_file}")
