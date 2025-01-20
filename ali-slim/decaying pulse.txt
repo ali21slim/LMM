@@ -1,0 +1,34 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def generate_fading_wave_varying_decay(frequencies, amplitudes, duration, sample_rate=44100, k=5, p=1.5):
+    t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
+    wave = np.zeros_like(t)
+
+    for freq, amp in zip(frequencies, amplitudes):
+        # Compute decay rate based on amplitude
+        decay_rate = k * amp**p
+        # Exponential decay
+        decay = amp * np.exp(-decay_rate * t)
+        # Generate the sine wave with decay
+        wave += decay * np.sin(2 * np.pi * freq * t)
+
+    # Normalize the wave
+    wave = wave / np.max(np.abs(wave))
+    return wave
+
+# Example usage
+frequencies = [200, 400, 600]
+amplitudes = [1.0, 0.8, 0.5]
+duration = 2
+sample_rate = 44100
+
+# Generate wave
+wave = generate_fading_wave_varying_decay(frequencies, amplitudes, duration, sample_rate, k=5, p=1.5)
+
+# Plot
+plt.plot(wave[:1000])  # Plot the first 1000 samples
+plt.title("Waveform with Amplitude-Dependent Decay")
+plt.xlabel("Sample")
+plt.ylabel("Amplitude")
+plt.show()
